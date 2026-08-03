@@ -9,11 +9,6 @@ import 'package:flutter_najwafth_driver/features/orders/presentation/widgets/ord
 import 'package:flutter_najwafth_driver/features/orders/presentation/widgets/order_status_timeline.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// TODO: GET /api/v1/driver/orders/:orderId/route is needed for a backend-built
-// route with pickup/dropoff coordinates and any route metadata.
-// TODO: Backend should return pickupAddress, pickupLat, pickupLng,
-// deliveryAddress, deliveryLat, and deliveryLng for accurate route mapping.
-
 class OrderDetailsPage extends ConsumerStatefulWidget {
   const OrderDetailsPage({super.key, required this.driverRequestId});
 
@@ -28,6 +23,11 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
   AppFailure? _failure;
   DriverRequest? _request;
   OrderStatus _currentStatus = OrderStatus.accepted;
+
+  String _formatOrderId(String orderId) {
+    final trimmed = orderId.trim();
+    return trimmed.length > 8 ? trimmed.substring(0, 8) : trimmed;
+  }
 
   @override
   void initState() {
@@ -82,7 +82,13 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
     final request = _request;
     if (request == null) return;
 
-    final orderId = request.orderId.isNotEmpty ? request.orderId : request.id;
+    final orderId = request.orderId;
+    if (orderId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.tr('Order not found'))),
+      );
+      return;
+    }
 
     final String nextStatusRaw = switch (_currentStatus) {
       OrderStatus.accepted => 'processing',
@@ -167,7 +173,10 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
     final request = _request;
     final orderId = request == null
         ? '...'
-        : (request.orderId.isNotEmpty ? request.orderId : request.id);
+        : (request.orderId.isNotEmpty
+              ? request.orderId
+              : context.l10n.tr('Unavailable'));
+    final displayOrderId = _formatOrderId(orderId);
     final earnings = request?.price == null
         ? '—'
         : formatCurrency(request!.price!);
@@ -189,7 +198,7 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${context.l10n.tr('Order')}  $orderId',
+              '${context.l10n.tr('Order')}  ORD-$displayOrderId',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -207,7 +216,7 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
           ],
         ),
       ),
-      body: _buildBody(request, orderId),
+      body: _buildBody(request, displayOrderId),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -236,7 +245,7 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
     );
   }
 
-  Widget _buildBody(DriverRequest? request, String orderId) {
+  Widget _buildBody(DriverRequest? request, String displayOrderId) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -314,7 +323,7 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
                 (request.location.isNotEmpty ? request.location : '—'),
             orderDate: dateStr,
             phone: request.phone.isNotEmpty ? request.phone : '—',
-            orderId: orderId,
+            orderId: displayOrderId,
           ),
           LocationInfoCard(
             title: context.l10n.tr('Deliver To'),
@@ -327,7 +336,7 @@ class _OrderDetailsPageState extends ConsumerState<OrderDetailsPage> {
                 (request.location.isNotEmpty ? request.location : '—'),
             orderDate: dateStr,
             phone: request.phone.isNotEmpty ? request.phone : '—',
-            orderId: orderId,
+            orderId: displayOrderId,
           ),
           OrderItemsCard(
             itemName: request.item.isNotEmpty
