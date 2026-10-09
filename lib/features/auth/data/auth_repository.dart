@@ -34,14 +34,13 @@ class AuthRepository {
     required String confirmPassword,
   }) async {
     return _apiClient.post(
-      '/api/v1/auth/register',
+      '/api/v1/auth/driver-register',
       data: {
         'name': fullName,
         'email': email,
         'phone': phone,
         'password': password,
         'confirmPassword': confirmPassword,
-        'role': 'driver',
       },
       parser: (data) =>
           AuthResponse.fromJson(data['data'] as Map<String, dynamic>),

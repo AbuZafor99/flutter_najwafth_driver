@@ -90,13 +90,28 @@ String _redactAuthorization(Object? value) {
   if (!header.toLowerCase().startsWith('bearer ')) {
     return '***';
   }
+  return 'Bearer ***';
+}
 
-  final token = header.substring(7);
-  if (token.length <= 12) {
-    return 'Bearer ***';
+bool _isSensitiveKey(String key) {
+  final normalized = key.toLowerCase().replaceAll(RegExp(r'[_-]'), '');
+  return normalized.contains('password') ||
+      normalized.contains('token') ||
+      normalized.contains('secret') ||
+      normalized == 'otp';
+}
+
+Object? _redactSensitive(Object? value) {
+  if (value is Map) {
+    return value.map(
+      (key, item) => MapEntry(
+        key,
+        key is String && _isSensitiveKey(key) ? '***' : _redactSensitive(item),
+      ),
+    );
   }
-
-  return 'Bearer ${token.substring(0, 6)}...${token.substring(token.length - 6)}';
+  if (value is List) return value.map(_redactSensitive).toList();
+  return value;
 }
 
 void _printLine(String message) {
@@ -142,7 +157,9 @@ String _readable(dynamic value) {
   }
 
   if (value is FormData) {
-    final fields = value.fields.map((e) => '${e.key}: ${e.value}').toList();
+    final fields = value.fields
+        .map((e) => '${e.key}: ${_isSensitiveKey(e.key) ? '***' : e.value}')
+        .toList();
     final files = value.files
         .map((e) => '${e.key}: ${e.value.filename ?? 'file'}')
         .toList();
@@ -150,14 +167,14 @@ String _readable(dynamic value) {
   }
 
   if (value is Map || value is List) {
-    return _prettyJson(value);
+    return _prettyJson(_redactSensitive(value));
   }
 
   if (value is String) {
     final trimmed = value.trim();
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
-        return _prettyJson(jsonDecode(trimmed));
+        return _prettyJson(_redactSensitive(jsonDecode(trimmed)));
       } on FormatException {
         return value;
       }

@@ -1,12 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-const bool kUseLiveServer = bool.fromEnvironment(
-  'USE_LIVE_SERVER',
-  defaultValue: false,
-);
-
 const String _liveBaseUrl = 'https://api.booksonwheeels.com';
-const int _localPort = 5002;
+const int _localPort = 5020;
 const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
 
 enum AppEnvironment { development, staging, production }
@@ -23,7 +18,7 @@ final class AppConfig {
   factory AppConfig.development() {
     return AppConfig(
       appName: 'Books on Wheels Driver',
-      environment: kUseLiveServer
+      environment: kReleaseMode
           ? AppEnvironment.production
           : AppEnvironment.development,
       baseUrl: _resolveBaseUrl(),
@@ -42,8 +37,7 @@ final class AppConfig {
 
 String _resolveBaseUrl() {
   if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
-  if (kUseLiveServer) return _liveBaseUrl;
-
+  if (kReleaseMode) return _liveBaseUrl;
   return defaultTargetPlatform == TargetPlatform.android
       ? 'http://10.0.2.2:$_localPort'
       : 'http://localhost:$_localPort';
