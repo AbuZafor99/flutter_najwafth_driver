@@ -1,8 +1,8 @@
 import 'package:intl/intl.dart';
 
-final _currencyFormat = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+final _currencyFormat = NumberFormat.currency(symbol: '£', decimalDigits: 2);
 final _wholeCurrencyFormat = NumberFormat.currency(
-  symbol: r'$',
+  symbol: '£',
   decimalDigits: 0,
 );
 
